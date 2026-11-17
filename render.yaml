@@ -18,6 +18,12 @@ services:
         value: openai/gpt-oss-120b
       - key: SEUIL_SCORE
         value: "0.5"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION_MINUTES
+        value: "1440"
+      - key: WIDGET_REQUETES_PAR_MINUTE
+        value: "10"
       - key: DATABASE_URL
         sync: false
       - key: GEMINI_API_KEY

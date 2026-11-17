@@ -4,20 +4,30 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Chunk, Document
+from ..models import Chunk, Document, User
 from ..schemas import ChunkOut, DocumentEnvoyeOut, DocumentOut
+from ..security import utilisateur_courant
 from ..services.chunking import decouper
-from ..services.pdf import extraire_pages
 from ..services.embeddings import vectoriser_morceaux
+from ..services.pdf import extraire_pages
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 TAILLE_MAX = 10 * 1024 * 1024
 
 
+def _mon_document(db: Session, user: User, document_id: int) -> Document:
+    document = db.get(Document, document_id)
+    # Same 404 whether it does not exist or belongs to another account: no information leak.
+    if document is None or document.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Document introuvable.")
+    return document
+
+
 @router.post("", response_model=DocumentEnvoyeOut, status_code=201)
 def envoyer_document(
     fichier: UploadFile = File(...),
+    user: User = Depends(utilisateur_courant),
     db: Session = Depends(get_db),
 ):
     if not fichier.filename or not fichier.filename.lower().endswith(".pdf"):
@@ -32,11 +42,16 @@ def envoyer_document(
     except PdfReadError:
         raise HTTPException(status_code=400, detail="Le PDF est illisible ou corrompu.")
 
-    document = Document(filename=fichier.filename, nb_pages=len(pages))
+    document = Document(user_id=user.id, filename=fichier.filename, nb_pages=len(pages))
     for numero_page, texte in enumerate(pages, start=1):
         for morceau in decouper(texte):
             document.chunks.append(
-                Chunk(position=len(document.chunks), page=numero_page, content=morceau)
+                Chunk(
+                    user_id=user.id,
+                    position=len(document.chunks),
+                    page=numero_page,
+                    content=morceau,
+                )
             )
 
     if not document.chunks:
@@ -68,22 +83,26 @@ def envoyer_document(
 
 
 @router.get("", response_model=list[DocumentOut])
-def lister_documents(db: Session = Depends(get_db)):
-    return db.scalars(select(Document).order_by(Document.created_at.desc())).all()
+def lister_documents(user: User = Depends(utilisateur_courant), db: Session = Depends(get_db)):
+    return db.scalars(
+        select(Document).where(Document.user_id == user.id).order_by(Document.created_at.desc())
+    ).all()
 
 
 @router.get("/{document_id}/chunks", response_model=list[ChunkOut])
-def lister_morceaux(document_id: int, db: Session = Depends(get_db)):
-    document = db.get(Document, document_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail="Document introuvable.")
-    return document.chunks
+def lister_morceaux(
+    document_id: int,
+    user: User = Depends(utilisateur_courant),
+    db: Session = Depends(get_db),
+):
+    return _mon_document(db, user, document_id).chunks
 
 
 @router.delete("/{document_id}", status_code=204)
-def supprimer_document(document_id: int, db: Session = Depends(get_db)):
-    document = db.get(Document, document_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail="Document introuvable.")
-    db.delete(document)
+def supprimer_document(
+    document_id: int,
+    user: User = Depends(utilisateur_courant),
+    db: Session = Depends(get_db),
+):
+    db.delete(_mon_document(db, user, document_id))
     db.commit()

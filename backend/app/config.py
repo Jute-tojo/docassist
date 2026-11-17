@@ -16,6 +16,11 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
 SEUIL_SCORE = float(os.getenv("SEUIL_SCORE", "0.5"))
 
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", str(60 * 24)))
+
+WIDGET_REQUETES_PAR_MINUTE = int(os.getenv("WIDGET_REQUETES_PAR_MINUTE", "10"))
+
 # Comma-separated, e.g. "http://localhost:5173,https://my-front.vercel.app"
 CORS_ORIGINS = [
     origine.strip().rstrip("/")
@@ -29,3 +34,5 @@ if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY est manquante dans le fichier .env")
 if not GROQ_API_KEY:
     raise RuntimeError("GROQ_API_KEY est manquante dans le fichier .env")
+if len(JWT_SECRET) < 32:
+    raise RuntimeError("JWT_SECRET est manquante ou trop courte (32 caractères minimum) dans le fichier .env")
