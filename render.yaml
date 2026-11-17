@@ -1,0 +1,30 @@
+# Configuration Render ("Blueprint") : Render lit ce fichier pour créer le service
+services:
+  - type: web
+    name: docassist-api
+    runtime: python
+    plan: free
+    region: frankfurt          # le plus proche de Supabase (eu-west-1, Irlande)
+    rootDir: backend           # le code Python est dans le dossier backend/
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true           # redéploie à chaque git push
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.13
+      - key: EMBEDDING_MODEL
+        value: gemini-embedding-001
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: SEUIL_SCORE
+        value: "0.5"
+      # Secrets : Render vous demandera leur valeur à la création (jamais dans Git)
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

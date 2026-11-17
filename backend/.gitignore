@@ -1,0 +1,12 @@
+# Secrets
+.env
+
+# Environnement Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Anciennes données locales (avant Supabase)
+database.db
+chroma/
