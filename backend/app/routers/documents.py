@@ -12,18 +12,18 @@ from ..services.embeddings import vectoriser_morceaux
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
-TAILLE_MAX = 10 * 1024 * 1024  # 10 Mo
+TAILLE_MAX = 10 * 1024 * 1024
 
 
 @router.post("", response_model=DocumentEnvoyeOut, status_code=201)
-def envoyer_document(                      # "def" et non plus "async def"
+def envoyer_document(
     fichier: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
     if not fichier.filename or not fichier.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont acceptés.")
 
-    contenu = fichier.file.read()          # lecture synchrone, sans "await"
+    contenu = fichier.file.read()
     if len(contenu) > TAILLE_MAX:
         raise HTTPException(status_code=413, detail="Le fichier dépasse 10 Mo.")
 
@@ -45,7 +45,7 @@ def envoyer_document(                      # "def" et non plus "async def"
             detail="Aucun texte trouvé dans ce PDF. S'agit-il d'un document scanné ?",
         )
 
-    # Vectorisation AVANT l'enregistrement : soit tout est enregistré, soit rien
+    # Embed before saving so a failure leaves nothing half-indexed in the database.
     try:
         vecteurs = vectoriser_morceaux([chunk.content for chunk in document.chunks])
     except Exception as erreur:
@@ -54,7 +54,6 @@ def envoyer_document(                      # "def" et non plus "async def"
     for chunk, vecteur in zip(document.chunks, vecteurs):
         chunk.embedding = vecteur
 
-    # Le document, ses morceaux et leurs vecteurs partent en une seule transaction
     db.add(document)
     db.commit()
     db.refresh(document)
@@ -86,5 +85,5 @@ def supprimer_document(document_id: int, db: Session = Depends(get_db)):
     document = db.get(Document, document_id)
     if document is None:
         raise HTTPException(status_code=404, detail="Document introuvable.")
-    db.delete(document)  # les morceaux et leurs vecteurs sont supprimés en cascade
+    db.delete(document)
     db.commit()

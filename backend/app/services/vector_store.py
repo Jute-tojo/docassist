@@ -5,7 +5,6 @@ from ..models import Chunk, Document
 
 
 def rechercher(db: Session, vecteur: list[float], k: int = 5) -> list[dict]:
-    """Renvoie les k morceaux de texte les plus proches du vecteur (pgvector)."""
     distance = Chunk.embedding.cosine_distance(vecteur).label("distance")
     lignes = db.execute(
         select(Chunk, Document.filename, distance)
@@ -21,7 +20,7 @@ def rechercher(db: Session, vecteur: list[float], k: int = 5) -> list[dict]:
             "filename": filename,
             "page": chunk.page,
             "content": chunk.content,
-            "score": round(1 - dist, 3),  # 1 = sens identique, 0 = aucun rapport
+            "score": round(1 - dist, 3),  # Cosine similarity: 1 = same meaning, 0 = unrelated
         }
         for chunk, filename, dist in lignes
     ]

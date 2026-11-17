@@ -7,13 +7,11 @@ from .config import CORS_ORIGINS
 from .database import Base, engine
 from .routers import ask, documents, search
 
-# Active pgvector (une seule fois), puis crée les tables manquantes
 with engine.begin() as connexion:
     connexion.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 Base.metadata.create_all(bind=engine)
 
-# Sécurité Supabase : bloque l'accès aux tables via l'API REST publique (clé "anon").
-# Le backend se connecte en propriétaire des tables, il n'est donc pas concerné.
+# Block access through Supabase's public REST API (anon key); the backend owns the tables, so it is not affected.
 with engine.begin() as connexion:
     for table in Base.metadata.tables:
         connexion.execute(text(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY'))
@@ -24,7 +22,6 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Autorise le front (Vue.js) à appeler l'API depuis une autre adresse
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,

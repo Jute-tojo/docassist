@@ -37,13 +37,12 @@ class Chunk(Base):
     position: Mapped[int]
     page: Mapped[int]
     content: Mapped[str] = mapped_column(Text)
-    # Le vecteur est stocké directement dans PostgreSQL grâce à pgvector
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIMENSION))
 
     document: Mapped["Document"] = relationship(back_populates="chunks")
 
     __table_args__ = (
-        # Index HNSW : recherche rapide des vecteurs les plus proches (distance cosinus)
+        # HNSW index for fast cosine-similarity search
         Index(
             "ix_chunks_embedding",
             "embedding",

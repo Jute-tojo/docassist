@@ -5,7 +5,7 @@ from .config import DATABASE_URL
 
 
 def _adresse_sqlalchemy(url: str) -> str:
-    # Supabase fournit "postgresql://..." : on précise le pilote psycopg (v3)
+    # Supabase gives "postgresql://" URLs; force the psycopg (v3) driver.
     for prefixe in ("postgresql://", "postgres://"):
         if url.startswith(prefixe):
             return "postgresql+psycopg://" + url.removeprefix(prefixe)
@@ -14,10 +14,10 @@ def _adresse_sqlalchemy(url: str) -> str:
 
 engine = create_engine(
     _adresse_sqlalchemy(DATABASE_URL),
-    pool_pre_ping=True,  # vérifie la connexion avant usage (Supabase coupe les connexions inactives)
+    pool_pre_ping=True,  # Supabase closes idle connections
     pool_size=5,
     max_overflow=5,
-    # Compatible avec le "Transaction pooler" de Supabase (pas de requêtes préparées)
+    # Disable prepared statements, required by Supabase's transaction pooler.
     connect_args={"prepare_threshold": None},
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

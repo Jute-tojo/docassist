@@ -7,7 +7,6 @@ from ..config import GROQ_API_KEY, GROQ_MODEL
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-# Codes HTTP signalant une surcharge temporaire (quota par minute, serveur occupé…)
 CODES_TEMPORAIRES = {429, 500, 502, 503, 504}
 MAX_TENTATIVES = 3
 
@@ -25,11 +24,11 @@ Règles strictes :
 
 
 class ServiceIASurcharge(Exception):
-    """Le service IA reste indisponible après plusieurs essais."""
+    pass
 
 
 class ServiceIAErreur(Exception):
-    """Erreur non temporaire du service IA (clé invalide, modèle inconnu…)."""
+    pass
 
 
 def construire_contexte(passages: list[dict]) -> str:
@@ -72,5 +71,4 @@ def generer_reponse(question: str, passages: list[dict]) -> str:
         except (ServiceIASurcharge, httpx.TransportError):
             if tentative == MAX_TENTATIVES - 1:
                 raise ServiceIASurcharge("Groq est indisponible après plusieurs essais.")
-            # Attente exponentielle : 1s, 2s… + un peu d'aléatoire
             time.sleep(2 ** tentative + random.uniform(0, 0.5))

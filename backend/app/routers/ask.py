@@ -30,14 +30,12 @@ def _vers_reponse(question: Question) -> ReponseOut:
 
 @router.post("/ask", response_model=ReponseOut)
 def poser_question(requete: QuestionIn, db: Session = Depends(get_db)):
-    # 1. Recherche des passages pertinents
     try:
         vecteur = vectoriser_question(requete.question)
         passages = [
             p for p in vector_store.rechercher(db, vecteur, requete.k)
             if p["score"] >= SEUIL_SCORE
         ]
-        # 2. Rédaction de la réponse, seulement si on a trouvé des passages
         reponse = generer_reponse(requete.question, passages) if passages else REPONSE_INCONNUE
     except ServiceIASurcharge:
         raise HTTPException(
@@ -45,7 +43,7 @@ def poser_question(requete: QuestionIn, db: Session = Depends(get_db)):
             detail="Le service IA est momentanément surchargé. Réessayez dans quelques instants.",
             headers={"Retry-After": "30"},
         )
-    except errors.APIError as erreur:  # embeddings Gemini
+    except errors.APIError as erreur:  # Gemini embedding errors
         if erreur.code in (429, 503):
             raise HTTPException(
                 status_code=503,
@@ -56,7 +54,7 @@ def poser_question(requete: QuestionIn, db: Session = Depends(get_db)):
     except Exception as erreur:
         raise HTTPException(status_code=502, detail=f"Erreur du service IA : {erreur}")
 
-    # 3. Si l'IA n'a pas trouvé la réponse, on ne garde pas de sources
+    # Drop sources when the model says the answer is not in the documents.
     if "Je ne trouve pas cette information" in reponse:
         passages = []
 
@@ -71,7 +69,6 @@ def poser_question(requete: QuestionIn, db: Session = Depends(get_db)):
         for numero, p in enumerate(passages, start=1)
     ]
 
-    # 4. Enregistrement dans l'historique
     question = Question(
         question=requete.question,
         answer=reponse,

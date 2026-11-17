@@ -1,22 +1,18 @@
-# Secrets
 .env
 **/.env
 
-# Documents internes d'entreprise et fichiers locaux
+# Internal company documents: never commit them
 entreprise/
 datake.txt
 
-# Python
 venv/
 .venv/
 __pycache__/
 *.pyc
 
-# Anciennes données locales (avant Supabase)
 **/database.db
 **/chroma/
 
-# Éditeurs / système
 .vscode/
 .idea/
 Thumbs.db

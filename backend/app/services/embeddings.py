@@ -6,7 +6,7 @@ from ..config import EMBEDDING_DIMENSION, EMBEDDING_MODEL, GEMINI_API_KEY
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 DIMENSION = EMBEDDING_DIMENSION
-TAILLE_LOT = 50   # nombre de textes envoyés à Gemini par requête
+TAILLE_LOT = 50
 
 
 def _vectoriser(textes: list[str], task_type: str) -> list[list[float]]:

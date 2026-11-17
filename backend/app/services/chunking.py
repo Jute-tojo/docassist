@@ -1,9 +1,5 @@
 def decouper(texte: str, taille: int = 200, chevauchement: int = 40) -> list[str]:
-    """Découpe un texte en morceaux d'environ `taille` mots.
-
-    Chaque morceau reprend les `chevauchement` derniers mots du précédent,
-    pour ne pas couper une idée en deux.
-    """
+    # Each chunk repeats the last `chevauchement` words of the previous one so ideas are not split.
     if chevauchement >= taille:
         raise ValueError("Le chevauchement doit être inférieur à la taille.")
 
